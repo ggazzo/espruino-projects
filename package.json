@@ -1,0 +1,21 @@
+{
+  "name": "tspruino-quickstart",
+  "version": "1.0.0",
+  "description": "Quickstart for Espruino with Typescript",
+  "type": "module",
+  "author": "Ilya Kiselev",
+  "license": "ISC",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "repository": {
+    "url": "https://github.com/ikiselev1989/tspruino-quickstart"
+  },
+  "devDependencies": {
+    "@types/espruino": "^1.94.10",
+    "prettier": "^3.4.2",
+    "recursive-readdir": "^2.2.3",
+    "rimraf": "^6.0.1",
+    "typescript": "^5.7.2"
+  }
+}
