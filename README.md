@@ -1,7 +1,7 @@
 # Espruino with Typescript quickstart
 
 
-## Scripts:
+## `make` scripts:
 
 `build` - build file
 
