@@ -65,6 +65,14 @@ export type MachineConfig<
 	states: TStates;
 };
 
+type String<T> = T extends string ? T : never;
+type EventTypesBase<Prefix extends string, TStates extends string> = `${Prefix}.${TStates}`;
+type EventTypes<Suffix extends string> = EventTypesBase<'state.enter' | 'state.exit', Suffix>;
+
+type Merge<T, U> = {
+	[K in keyof T | keyof U]: K extends keyof T ? T[K] : K extends keyof U ? U[K] : never;
+};
+
 export class FiniteStateMachine<
 	TStates extends string,
 	TEvent extends { type: string } = { type: string },
@@ -72,13 +80,22 @@ export class FiniteStateMachine<
 		[context: string]: any;
 	} = {},
 	TConfig extends MachineConfig<TContext, TStates, any> = MachineConfig<TContext, TStates, any>,
-> extends Emitter<{
-	stateChange: {
-		previousState: TStates;
-		currentState: TStates;
-		event: TEvent;
-	};
-}> {
+> extends Emitter<
+	Merge<
+		{
+			[K in EventTypesBase<'context.update', String<keyof TContext>>]: {
+				value: TContext[K extends `${infer Prefix}.${infer Suffix}` ? Suffix : K];
+			};
+		},
+		{
+			[K in EventTypes<TStates> | 'state.change']: {
+				previousState: TStates;
+				currentState: TStates;
+				event: TEvent;
+			};
+		}
+	>
+> {
 	private currentState: TStates;
 	private config: TConfig;
 	private context: TContext;
@@ -128,6 +145,7 @@ export class FiniteStateMachine<
 		transition: Transaction<TContext, TEvent, any, any>,
 		event: TEvent,
 	): boolean {
+		const previousState = this.currentState;
 		const currentStateConfig = this.config.states[this.currentState];
 
 		// Check if the guard condition passes (if there is one)
@@ -135,33 +153,70 @@ export class FiniteStateMachine<
 			return false;
 		}
 
+		const context = JSON.parse(JSON.stringify(this.context)) as TContext;
 		// Run exit actions for current state
 		// Run transition actions
 		if (transition.actions) {
-			transition.actions(this.context, event as any);
+			transition.actions(context, event as any);
 		}
 
 		if (this.currentState === transition.target) {
+			Object.entries(context).forEach(([key, value]) => {
+				if (this.context[key] !== value) {
+					this.context[key as keyof TContext] = value;
+					this.emit(`context.update.${key as String<keyof TContext>}`, {
+						previousState,
+						currentState: this.currentState,
+						event,
+						key,
+						value,
+					} as any);
+				}
+			});
 			return false;
 		}
 		if (currentStateConfig.onExit) {
-			currentStateConfig.onExit(this.context, event);
+			currentStateConfig.onExit(context, event);
 		}
 		// Update current state
-		const previousState = this.currentState;
 		this.currentState = transition.target as TStates;
 
 		// Run entry actions for new state
 		const nextStateConfig = this.config.states[this.currentState];
 		if (nextStateConfig.onEnter) {
-			nextStateConfig.onEnter(this.context, event);
+			nextStateConfig.onEnter(context, event);
 		}
 
-		this.emit('stateChange', {
+		Object.entries(context).forEach(([key, value]) => {
+			if (this.context[key] !== value) {
+				this.emit(`context.update.${key as String<keyof TContext>}`, {
+					previousState,
+					currentState: this.currentState,
+					event,
+					key,
+					value,
+				} as any);
+				this.context[key as keyof TContext] = value;
+			}
+		});
+
+		this.emit(`state.exit.${previousState}`, {
 			previousState,
 			currentState: this.currentState,
 			event,
-		});
+		} as any);
+
+		this.emit(`state.enter.${this.currentState}`, {
+			previousState,
+			currentState: this.currentState,
+			event,
+		} as any);
+
+		this.emit('state.change', {
+			previousState,
+			currentState: this.currentState,
+			event,
+		} as any);
 
 		console.log(`Transition: ${previousState} -> ${this.currentState} (${event.type})`);
 

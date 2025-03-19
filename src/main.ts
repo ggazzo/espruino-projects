@@ -13,39 +13,29 @@ const heater = new Pin(pins.heater);
 
 const readTemperature = () => filter.updateEstimate(sensor.getTemp());
 
-let lastElapsed = 0;
-
-// actor.subscribe(state => {
-// 	switch (true) {
-// 		case state.matches('pid'): {
-// 			const now = Date.now();
-// 			const temperature = readTemperature();
-// 			const output = pid.compute(temperature, (now - lastElapsed) / 1000);
-// 			actor.send({ type: 'DONE', output });
-// 			lastElapsed = now;
-// 		}
-// 		case state.matches('heating'): {
-// 			heater.pwm(map(state.context.output, 0, 255, 0, 1));
-// 		}
-// 		case state.matches('normal'): {
-// 			heater.pwm(0);
-// 		}
-// 	}
-// });
-
 const heatingMachine = createHeatingMachine();
 
-heatingMachine.on('stateChange', ({ previousState, currentState, event }) => {
-	console.log('stateChange', previousState, currentState, event);
+heatingMachine.on('state.enter.pid', () => {
+	const temperature = readTemperature();
+
+	const now = Date.now();
+	const timeElapsed = now - heatingMachine.getContext().lastTimePID;
+
+	heatingMachine.send({
+		type: 'DONE',
+		output: heater.compute(temperature, timeElapsed),
+		lastTimePID: now,
+	});
+});
+
+heatingMachine.on('context.update.output', () => {
+	const { output } = heatingMachine.getContext();
+	heater.pwm(map(output, 0, 255, 0, 1));
 });
 
 setInterval(() => {
-	console.log(
-		'AAAAA',
-		heatingMachine.send({
-			type: 'READ_TEMPERATURE',
-			temperature: Math.random() * 100,
-			// readTemperature()
-		}),
-	);
+	heatingMachine.send({
+		type: 'READ_TEMPERATURE',
+		temperature: readTemperature(),
+	});
 }, 100);

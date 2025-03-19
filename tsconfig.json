@@ -1,12 +1,14 @@
 {
 	"compilerOptions": {
 		"target": "ES5",
-		"lib": ["es2015", "dom"],
+		"lib": ["es2017", "dom"],
 		"moduleResolution": "node",
 		"outDir": "dist",
 		"paths": {
 			"@/*": ["./src/modules/*"]
 		},
+
+		"esModuleInterop": true,
 
 		"allowJs": true,
 		"removeComments": true,
@@ -15,7 +17,7 @@
 		"rewriteRelativeImportExtensions": true,
 		"erasableSyntaxOnly": true,
 		// "verbatimModuleSyntax": true,
-		"types": ["@types/espruino"]
+		"types": ["@types/espruino", "node"]
 	},
 
 	"files": ["src/main.ts"],

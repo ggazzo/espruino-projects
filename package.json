@@ -12,7 +12,8 @@
 		"code:build": "rollup -c",
 		"code:watch": "rollup -cw",
 		"wbuild": "rm -rf dist && webpack --config webpack.config.mjs",
-		"test": "node --import=tsx --test ./src/**/*.spec.*"
+		"test": "node --import=tsx --test ./src/**/*.spec.*",
+		"test-watch": "node --watch --import=tsx --test ./src/**/*.spec.*"
 	},
 	"main": "dist/index.js",
 	"repository": {

@@ -9,17 +9,19 @@ export const createHeatingMachine = () =>
 		  }
 		| { type: 'HEAT' }
 		| { type: 'STOP' }
-		| { type: 'DONE'; output: number },
+		| { type: 'DONE'; output: number; lastTimePID: number },
 		{
 			temperature: number;
 			counter_measurement: number;
 			output: number;
+			lastTimePID: number;
 		}
 	>({
 		context: {
 			temperature: 0,
 			counter_measurement: 0,
 			output: 0,
+			lastTimePID: 0,
 		},
 		initial: 'idle',
 		states: {
@@ -42,6 +44,10 @@ export const createHeatingMachine = () =>
 				transitions: {
 					DONE: {
 						target: 'heating',
+						actions: (context, event) => {
+							context.output = event.output;
+							context.lastTimePID = event.lastTimePID;
+						},
 					},
 				},
 			},
@@ -56,7 +62,6 @@ export const createHeatingMachine = () =>
 							target: 'heating',
 							actions: function (context, event) {
 								context.counter_measurement += 1;
-								console.log('incrementing counter_measurement', context.counter_measurement);
 							},
 							cond: (context, event) => context.counter_measurement < 10,
 						},
