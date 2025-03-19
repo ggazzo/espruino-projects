@@ -1,13 +1,27 @@
 import { FiniteStateMachine } from './machine';
 
 export const createHeatingMachine = () =>
-	new FiniteStateMachine({
-		initial: 'idle',
+	FiniteStateMachine.create<
+		'idle' | 'heating' | 'pid',
+		| {
+				type: 'READ_TEMPERATURE';
+				temperature: number;
+		  }
+		| { type: 'HEAT' }
+		| { type: 'STOP' }
+		| { type: 'DONE'; output: number },
+		{
+			temperature: number;
+			counter_measurement: number;
+			output: number;
+		}
+	>({
 		context: {
 			temperature: 0,
 			counter_measurement: 0,
 			output: 0,
 		},
+		initial: 'idle',
 		states: {
 			idle: {
 				transitions: {
@@ -57,4 +71,4 @@ export const createHeatingMachine = () =>
 				},
 			},
 		},
-	} as const);
+	});

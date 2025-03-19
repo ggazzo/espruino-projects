@@ -2,16 +2,6 @@ import assert from 'node:assert/strict';
 import { test, beforeEach } from 'node:test';
 import { createHeatingMachine } from './heating.machine';
 
-beforeEach(() => {
-	// Reset the machine to its initial state before each test
-	// machine.updateContext({
-	// 	temperature: 0,
-	// 	counter_measurement: 0,
-	// 	output: 0,
-	// });
-	// machine.send({ type: 'STOP' });
-});
-
 test('should initialize in the idle state', () => {
 	const machine = createHeatingMachine();
 	assert.strictEqual(machine.getState(), 'idle');
@@ -55,8 +45,9 @@ test('should reset counter_measurement on exiting heating state', () => {
 		machine.send({ type: 'READ_TEMPERATURE', temperature: 30 });
 	}
 
-	machine.send({ type: 'DONE' });
+	machine.send({ type: 'DONE', output: 100 });
 	assert.strictEqual(machine.getState(), 'heating');
+	assert.strictEqual(machine.getContext().output, 100);
 	assert.strictEqual(machine.getContext().counter_measurement, 0);
 });
 
