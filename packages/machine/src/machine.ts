@@ -225,8 +225,6 @@ export class FiniteStateMachine<
 			event,
 		} as any);
 
-		console.log(`Transition: ${previousState} -> ${this.currentState} (${event.type})`);
-
 		return true;
 	}
 	/**
@@ -241,7 +239,6 @@ export class FiniteStateMachine<
 		const transition = currentStateConfig.transitions[event.type];
 
 		if (!transition) {
-			console.warn(`No transition found for event ${event.type} in state ${this.currentState}`);
 			return this.currentState;
 		}
 

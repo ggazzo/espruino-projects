@@ -28,6 +28,12 @@ export default {
 		port: 3000,
 	},
 	devtool: 'source-map',
+	// Disable asset size warnings
+	performance: {
+		hints: false,
+		maxEntrypointSize: 512000,
+		maxAssetSize: 512000,
+	},
 	module: {
 		rules: [
 			{

@@ -7,6 +7,7 @@ const __dirname = path.dirname(__filename);
 
 export default {
 	entry: './src/index.tsx',
+	mode: 'production',
 	output: {
 		path: path.resolve(__dirname, 'dist'),
 		filename: 'bundle.js',
@@ -36,6 +37,12 @@ export default {
 			'@tspruino/application': path.resolve(__dirname, '../application/src'),
 			'@tspruino/espruino': path.resolve(__dirname, '../espruino/src'),
 		},
+	},
+	// Disable asset size warnings
+	performance: {
+		hints: false,
+		maxEntrypointSize: 512000,
+		maxAssetSize: 512000,
 	},
 	devServer: {
 		static: {

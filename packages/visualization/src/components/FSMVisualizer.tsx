@@ -10,6 +10,9 @@ import ReactFlow, {
 	EdgeProps,
 	getBezierPath,
 	EdgeLabelRenderer,
+	Node,
+	Edge,
+	NodeProps,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { FiniteStateMachine } from '@tspruino/machine';
@@ -99,62 +102,49 @@ const ConditionEdge = ({
 	);
 };
 
-interface FSMVisualizerProps {
-	machine: any; // Using any for flexibility with different machine types
+// Generalized event configuration interface
+interface EventConfig {
+	type: string;
+	fields: EventField[];
+	defaultPayload?: Record<string, any>;
 }
 
-// Event payload structure for different events
-interface EventPayload {
-	READ_TEMPERATURE: {
-		temperature: number;
-	};
-	TEMPERATURE: {
-		temperature: number;
-	};
-	HYSTERESIS_TEMP: {
-		temperature: number;
-	};
-	VOLUME: {
-		volume: number;
-	};
-	WAIT_TEMPERATURE: {
-		temperature: number;
-	};
-	HYSTERESIS_TIME: {
-		time: number;
-	};
-	PID: {
-		kp: number;
-		ki: number;
-		kd: number;
-		pOn: number;
-	};
-	WATTS: {
-		watts: number;
-	};
-	PREPARE_ABSOLUTE_TIME: {
-		preparing_time: number;
-	};
+interface EventField {
+	name: string;
+	label: string;
+	type: 'number' | 'text' | 'boolean' | 'select';
+	defaultValue?: any;
+	options?: Array<{ value: any; label: string }>; // For select fields
+	step?: number; // For number inputs
+	transform?: (value: any) => any; // Optional transformation function
+}
+
+// Generic event payload structure
+interface GenericPayload {
+	[eventType: string]: Record<string, any>;
+}
+
+// Define types for our React Flow nodes and edges
+interface FSMNodeData {
+	label: string;
+	isActive?: boolean;
+	description?: string;
 	[key: string]: any;
 }
 
-// Events that require configuration
-const EVENTS_WITH_PAYLOAD = [
-	'READ_TEMPERATURE',
-	'TEMPERATURE',
-	'HYSTERESIS_TEMP',
-	'VOLUME',
-	'WAIT_TEMPERATURE',
-	'HYSTERESIS_TIME',
-	'PID',
-	'WATTS',
-	'PREPARE_ABSOLUTE_TIME',
-];
+interface FSMEdgeData {
+	eventType?: string;
+	condition?: string;
+	[key: string]: any;
+}
+
+type FSMNode = Node<FSMNodeData>;
+type FSMEdge = Edge<FSMEdgeData>;
 
 // Add function to apply D3-Force layout to existing nodes
-const applyD3ForceLayout = (nodes, edges) => {
+const applyD3ForceLayout = (nodes: FSMNode[], edges: FSMEdge[]) => {
 	// Extract node and edge data for D3
-	const d3Nodes = nodes.map(n => ({
+	const d3Nodes = nodes.map((n: FSMNode) => ({
 		id: n.id,
 		x: n.position.x,
 		y: n.position.y,
@@ -162,7 +152,7 @@ const applyD3ForceLayout = (nodes, edges) => {
 		originalNode: n,
 	}));
 
-	const d3Links = edges.map(e => ({
+	const d3Links = edges.map((e: FSMEdge) => ({
 		source: e.source,
 		target: e.target,
 		value: 1,
@@ -188,8 +178,8 @@ const applyD3ForceLayout = (nodes, edges) => {
 	}
 
 	// Update the original nodes with new positions
-	return nodes.map(node => {
-		const d3Node = d3Nodes.find(n => n.id === node.id);
+	return nodes.map((node: FSMNode) => {
+		const d3Node = d3Nodes.find((n: any) => n.id === node.id);
 		if (d3Node) {
 			return {
 				...node,
@@ -203,24 +193,43 @@ const applyD3ForceLayout = (nodes, edges) => {
 	});
 };
 
-const FSMVisualizer: React.FC<FSMVisualizerProps> = ({ machine }) => {
-	const [nodes, setNodes, onNodesChange] = useNodesState([]);
-	const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+// Interface for the FSMVisualizer component props
+interface FSMVisualizerProps {
+	machine: ReturnType<typeof FiniteStateMachine.create>;
+	// Add configurable options for events and payloads
+	eventConfigs?: EventConfig[];
+}
+
+const FSMVisualizer: React.FC<FSMVisualizerProps> = ({ machine, eventConfigs = [] }) => {
+	const [nodes, setNodes, onNodesChange] = useNodesState<FSMNodeData>([]);
+	const [edges, setEdges, onEdgesChange] = useEdgesState<FSMEdgeData>([]);
 	const [currentState, setCurrentState] = useState<string>('');
 	const [context, setContext] = useState<Record<string, any>>({});
 	const [selectedEvent, setSelectedEvent] = useState<string | null>(null);
 	const [activeTab, setActiveTab] = useState<'transitions' | 'events'>('transitions');
-	const [eventPayloads, setEventPayloads] = useState<EventPayload>({
-		READ_TEMPERATURE: { temperature: 25 },
-		TEMPERATURE: { temperature: 80 },
-		HYSTERESIS_TEMP: { temperature: 5 },
-		VOLUME: { volume: 500 },
-		WAIT_TEMPERATURE: { temperature: 65 },
-		HYSTERESIS_TIME: { time: 10 },
-		PID: { kp: 0.1, ki: 0.01, kd: 0.001, pOn: 0 },
-		WATTS: { watts: 1500 },
-		PREPARE_ABSOLUTE_TIME: { preparing_time: Date.now() + 60000 }, // 1 minute from now
+
+	// Initialize event payloads from configs
+	const [eventPayloads, setEventPayloads] = useState<GenericPayload>(() => {
+		const initialPayloads: GenericPayload = {};
+
+		eventConfigs.forEach((config: EventConfig) => {
+			if (config.defaultPayload) {
+				initialPayloads[config.type] = { ...config.defaultPayload };
+			} else {
+				// Generate default payload from fields
+				const payload: Record<string, any> = {};
+				config.fields.forEach((field: EventField) => {
+					if (field.defaultValue !== undefined) {
+						payload[field.name] = field.defaultValue;
+					}
+				});
+				initialPayloads[config.type] = payload;
+			}
+		});
+
+		return initialPayloads;
 	});
+
 	const [transactionHistory, setTransactionHistory] = useState<
 		Array<{
 			time: string;
@@ -350,13 +359,26 @@ const FSMVisualizer: React.FC<FSMVisualizerProps> = ({ machine }) => {
 		eventType: string,
 		field: string,
 	) => {
-		const value =
-			event.target.type === 'number' ? parseFloat(event.target.value) : event.target.value;
+		let value =
+			event.target.type === 'number'
+				? parseFloat(event.target.value)
+				: event.target.type === 'checkbox'
+					? event.target.checked
+					: event.target.value;
+
+		// Find field definition to check for transforms
+		const eventConfig = eventConfigs.find((config: EventConfig) => config.type === eventType);
+		if (eventConfig) {
+			const fieldConfig = eventConfig.fields.find((f: EventField) => f.name === field);
+			if (fieldConfig?.transform) {
+				value = fieldConfig.transform(value);
+			}
+		}
 
 		setEventPayloads(prev => ({
 			...prev,
 			[eventType]: {
-				...prev[eventType],
+				...(prev[eventType] || {}),
 				[field]: value,
 			},
 		}));
@@ -369,7 +391,8 @@ const FSMVisualizer: React.FC<FSMVisualizerProps> = ({ machine }) => {
 		// Create event with appropriate payload based on event type
 		let event: any = { type: eventType };
 
-		if (EVENTS_WITH_PAYLOAD.includes(eventType) && eventPayloads[eventType]) {
+		// Add payload if available for this event type
+		if (eventPayloads[eventType]) {
 			event = {
 				...event,
 				...eventPayloads[eventType],
@@ -381,9 +404,7 @@ const FSMVisualizer: React.FC<FSMVisualizerProps> = ({ machine }) => {
 			{
 				time: new Date().toLocaleTimeString(),
 				event: eventType,
-				payload: EVENTS_WITH_PAYLOAD.includes(eventType)
-					? JSON.stringify(eventPayloads[eventType])
-					: '-',
+				payload: eventPayloads[eventType] ? JSON.stringify(eventPayloads[eventType]) : '-',
 			},
 			...prev.slice(0, 49), // Keep last 50 events
 		]);
@@ -397,7 +418,7 @@ const FSMVisualizer: React.FC<FSMVisualizerProps> = ({ machine }) => {
 
 	// Check if an event needs configuration
 	const eventNeedsConfig = (eventType: string): boolean => {
-		return EVENTS_WITH_PAYLOAD.includes(eventType);
+		return eventConfigs.some(config => config.type === eventType);
 	};
 
 	// Handle click on event button
@@ -434,9 +455,12 @@ const FSMVisualizer: React.FC<FSMVisualizerProps> = ({ machine }) => {
 		));
 	};
 
-	// Return input fields for the selected event
+	// Render form for the selected event
 	const renderEventForm = () => {
 		if (!selectedEvent) return null;
+
+		const eventConfig = eventConfigs.find((config: EventConfig) => config.type === selectedEvent);
+		if (!eventConfig) return null;
 
 		const formStyle = {
 			marginTop: '10px',
@@ -494,155 +518,71 @@ const FSMVisualizer: React.FC<FSMVisualizerProps> = ({ machine }) => {
 			</div>
 		);
 
-		switch (selectedEvent) {
-			case 'READ_TEMPERATURE':
-			case 'TEMPERATURE':
-			case 'HYSTERESIS_TEMP':
-			case 'WAIT_TEMPERATURE':
-				return (
-					<div style={formStyle}>
-						<h4 style={{ margin: '0 0 8px 0' }}>Configure {selectedEvent}</h4>
-						<div style={inputContainerStyle}>
-							<label style={labelStyle}>Temperature (°C):</label>
-							<input
-								type="number"
-								value={eventPayloads[selectedEvent].temperature}
-								onChange={e => handlePayloadChange(e, selectedEvent, 'temperature')}
-								style={inputStyle}
-							/>
+		return (
+			<div style={formStyle}>
+				<h4 style={{ margin: '0 0 8px 0' }}>Configure {selectedEvent}</h4>
+
+				{eventConfig.fields.map((field: EventField) => {
+					// Ensure we have a payload object for this event
+					const payload = eventPayloads[selectedEvent] || {};
+					// Get current value with fallback to default
+					const currentValue =
+						payload[field.name] !== undefined ? payload[field.name] : field.defaultValue;
+
+					return (
+						<div key={field.name} style={inputContainerStyle}>
+							<label style={labelStyle}>{field.label}:</label>
+							{field.type === 'number' && (
+								<input
+									type="number"
+									value={currentValue}
+									step={field.step}
+									onChange={e => handlePayloadChange(e, selectedEvent, field.name)}
+									style={inputStyle}
+								/>
+							)}
+							{field.type === 'text' && (
+								<input
+									type="text"
+									value={currentValue}
+									onChange={e => handlePayloadChange(e, selectedEvent, field.name)}
+									style={inputStyle}
+								/>
+							)}
+							{field.type === 'boolean' && (
+								<input
+									type="checkbox"
+									checked={currentValue}
+									onChange={e => handlePayloadChange(e, selectedEvent, field.name)}
+									style={{ margin: '0 8px' }}
+								/>
+							)}
+							{field.type === 'select' && field.options && (
+								<select
+									value={currentValue}
+									onChange={e =>
+										handlePayloadChange(
+											e as unknown as React.ChangeEvent<HTMLInputElement>,
+											selectedEvent,
+											field.name,
+										)
+									}
+									style={inputStyle}
+								>
+									{field.options.map((option: { value: any; label: string }) => (
+										<option key={option.value} value={option.value}>
+											{option.label}
+										</option>
+									))}
+								</select>
+							)}
 						</div>
-						{renderButtons()}
-					</div>
-				);
-			case 'VOLUME':
-				return (
-					<div style={formStyle}>
-						<h4 style={{ margin: '0 0 8px 0' }}>Configure {selectedEvent}</h4>
-						<div style={inputContainerStyle}>
-							<label style={labelStyle}>Volume (ml):</label>
-							<input
-								type="number"
-								value={eventPayloads.VOLUME.volume}
-								onChange={e => handlePayloadChange(e, 'VOLUME', 'volume')}
-								style={inputStyle}
-							/>
-						</div>
-						{renderButtons()}
-					</div>
-				);
-			case 'HYSTERESIS_TIME':
-				return (
-					<div style={formStyle}>
-						<h4 style={{ margin: '0 0 8px 0' }}>Configure {selectedEvent}</h4>
-						<div style={inputContainerStyle}>
-							<label style={labelStyle}>Time (seconds):</label>
-							<input
-								type="number"
-								value={eventPayloads.HYSTERESIS_TIME.time}
-								onChange={e => handlePayloadChange(e, 'HYSTERESIS_TIME', 'time')}
-								style={inputStyle}
-							/>
-						</div>
-						{renderButtons()}
-					</div>
-				);
-			case 'PID':
-				return (
-					<div style={formStyle}>
-						<h4 style={{ margin: '0 0 8px 0' }}>Configure {selectedEvent}</h4>
-						<div style={inputContainerStyle}>
-							<label style={labelStyle}>Kp:</label>
-							<input
-								type="number"
-								step="0.001"
-								value={eventPayloads.PID.kp}
-								onChange={e => handlePayloadChange(e, 'PID', 'kp')}
-								style={inputStyle}
-							/>
-						</div>
-						<div style={inputContainerStyle}>
-							<label style={labelStyle}>Ki:</label>
-							<input
-								type="number"
-								step="0.001"
-								value={eventPayloads.PID.ki}
-								onChange={e => handlePayloadChange(e, 'PID', 'ki')}
-								style={inputStyle}
-							/>
-						</div>
-						<div style={inputContainerStyle}>
-							<label style={labelStyle}>Kd:</label>
-							<input
-								type="number"
-								step="0.001"
-								value={eventPayloads.PID.kd}
-								onChange={e => handlePayloadChange(e, 'PID', 'kd')}
-								style={inputStyle}
-							/>
-						</div>
-						<div style={inputContainerStyle}>
-							<label style={labelStyle}>pOn:</label>
-							<input
-								type="number"
-								value={eventPayloads.PID.pOn}
-								onChange={e => handlePayloadChange(e, 'PID', 'pOn')}
-								style={inputStyle}
-							/>
-						</div>
-						{renderButtons()}
-					</div>
-				);
-			case 'WATTS':
-				return (
-					<div style={formStyle}>
-						<h4 style={{ margin: '0 0 8px 0' }}>Configure {selectedEvent}</h4>
-						<div style={inputContainerStyle}>
-							<label style={labelStyle}>Watts:</label>
-							<input
-								type="number"
-								value={eventPayloads.WATTS.watts}
-								onChange={e => handlePayloadChange(e, 'WATTS', 'watts')}
-								style={inputStyle}
-							/>
-						</div>
-						{renderButtons()}
-					</div>
-				);
-			case 'PREPARE_ABSOLUTE_TIME':
-				return (
-					<div style={formStyle}>
-						<h4 style={{ margin: '0 0 8px 0' }}>Configure {selectedEvent}</h4>
-						<div style={inputContainerStyle}>
-							<label style={labelStyle}>Seconds from now:</label>
-							<input
-								type="number"
-								onChange={e => {
-									// Calculate timestamp that is N seconds from now
-									const secondsFromNow = parseInt(e.target.value) || 0;
-									const timestamp = Date.now() + secondsFromNow * 1000;
-									handlePayloadChange(
-										{
-											...e,
-											target: { ...e.target, value: timestamp.toString(), type: 'number' },
-										} as any,
-										'PREPARE_ABSOLUTE_TIME',
-										'preparing_time',
-									);
-								}}
-								defaultValue="60"
-								style={inputStyle}
-							/>
-						</div>
-						<div style={{ fontSize: '12px', color: '#666', marginBottom: '10px' }}>
-							Will prepare for:{' '}
-							{new Date(eventPayloads.PREPARE_ABSOLUTE_TIME.preparing_time).toLocaleTimeString()}
-						</div>
-						{renderButtons()}
-					</div>
-				);
-			default:
-				return null; // This should never be reached now since we only select events that need config
-		}
+					);
+				})}
+
+				{renderButtons()}
+			</div>
+		);
 	};
 
 	// Render the context values
