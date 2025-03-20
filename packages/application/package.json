@@ -5,11 +5,12 @@
 	"types": "./dist/index.d.ts",
 	"scripts": {
 		"build": "tsc",
-		"test": "jest",
+		"test": "node --import tsx --test ./src/**/*.spec.*",
 		"start": "tsc --watch"
 	},
 	"dependencies": {
-		"@tspruino/machine": "workspace:*"
+		"@tspruino/machine": "workspace:*",
+		"tsx": "^4.19.3"
 	},
 	"devDependencies": {
 		"@types/jest": "^29.5.12",
