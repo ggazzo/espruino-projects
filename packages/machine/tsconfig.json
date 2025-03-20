@@ -1,0 +1,19 @@
+{
+	"extends": "../../tsconfig.json",
+	"compilerOptions": {
+		"outDir": "./dist",
+		"rootDir": "./src",
+		"composite": true,
+		"declaration": true,
+		"noEmit": false
+	},
+	"files": [
+		"src/index.ts",
+		"src/machine.ts",
+		"src/main.machine.ts",
+		"src/heating.machine.ts",
+		"src/calculations.ts"
+	],
+	"include": ["src/**/*.ts"],
+	"exclude": ["node_modules", "dist"]
+}

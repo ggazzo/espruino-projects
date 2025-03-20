@@ -1,48 +1,52 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import HtmlWebpackPlugin from 'html-webpack-plugin';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 /**
- * Webpack configuration enhanced with Re.Pack defaults for React Native.
- *
- * Learn about webpack configuration: https://webpack.js.org/configuration/
- * Learn about Re.Pack configuration: https://re-pack.dev/docs/guides/configuration
+ * Webpack configuration enhanced for React with ReactFlow
  */
 
 export default {
 	mode: 'development',
 	context: __dirname,
-	entry: './src/main.ts',
-	// target: 'es6',
-	resolve: {
-		extensions: ['.ts', '.js', '.json'],
+	entry: './src/index.tsx',
+	output: {
+		path: path.resolve(__dirname, 'dist'),
+		filename: 'bundle.js',
 	},
-
-	devtool: 'hidden-source-map',
+	resolve: {
+		extensions: ['.tsx', '.ts', '.js', '.json'],
+	},
+	devServer: {
+		static: {
+			directory: path.join(__dirname, 'public'),
+		},
+		hot: true,
+		port: 3000,
+	},
+	devtool: 'source-map',
 	module: {
 		rules: [
 			{
 				test: /\.[cm]?[jt]sx?$/,
 				use: 'babel-loader',
 				type: 'javascript/auto',
+				exclude: /node_modules/,
+			},
+			{
+				test: /\.css$/,
+				use: ['style-loader', 'css-loader'],
 			},
 		],
 	},
-	// optimization: {
-	// 	minimizer: [
-	// 		new TerserPlugin({
-	// 			test: /\.(js)?bundle(\?.*)?$/i,
-	// 			extractComments: false,
-	// 			terserOptions: {
-	// 				format: {
-	// 					comments: false,
-	// 				},
-	// 			},
-	// 		}),
-	// 	],
-	// },
+	plugins: [
+		new HtmlWebpackPlugin({
+			template: './public/index.html',
+		}),
+	],
 };
 
 // const webpack = require('webpack');

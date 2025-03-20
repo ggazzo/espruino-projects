@@ -1,0 +1,19 @@
+{
+	"name": "@tspruino/application",
+	"version": "0.0.1",
+	"main": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"scripts": {
+		"build": "tsc",
+		"test": "jest",
+		"start": "tsc --watch"
+	},
+	"dependencies": {
+		"@tspruino/machine": "workspace:*"
+	},
+	"devDependencies": {
+		"@types/jest": "^29.5.12",
+		"jest": "^29.7.0",
+		"ts-jest": "^29.1.2"
+	}
+}

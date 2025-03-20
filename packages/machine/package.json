@@ -1,0 +1,22 @@
+{
+	"name": "@tspruino/machine",
+	"version": "0.1.0",
+	"main": "./dist/index.js",
+	"module": "./dist/index.mjs",
+	"types": "./dist/index.d.ts",
+	"license": "MIT",
+	"scripts": {
+		"build": "tsc",
+		"dev": "tsc --watch",
+		"lint": "eslint src/**/*.ts",
+		"clean": "rm -rf dist"
+	},
+	"devDependencies": {
+		"@types/node": "^22.13.10",
+		"eslint": "^8.56.0",
+		"typescript": "^5.7.2"
+	},
+	"dependencies": {
+		"@rocket.chat/emitter": "^0.31.25"
+	}
+}

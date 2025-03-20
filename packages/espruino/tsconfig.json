@@ -1,0 +1,12 @@
+{
+	"extends": "../../tsconfig.json",
+	"compilerOptions": {
+		"outDir": "./dist",
+		"rootDir": "./src",
+		"types": ["@types/espruino", "node"],
+		"composite": true
+	},
+	"references": [{ "path": "../machine" }],
+	"include": ["src/**/*.ts"],
+	"exclude": ["node_modules", "dist"]
+}

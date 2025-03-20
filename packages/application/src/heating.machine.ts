@@ -1,4 +1,4 @@
-import { FiniteStateMachine } from './machine';
+import { FiniteStateMachine } from '@tspruino/machine';
 
 export const createHeatingMachine = () =>
 	FiniteStateMachine.create<
@@ -53,7 +53,6 @@ export const createHeatingMachine = () =>
 			},
 			heating: {
 				onExit(context, event) {
-					console.log('onExit');
 					context.counter_measurement = 0;
 				},
 				transitions: {

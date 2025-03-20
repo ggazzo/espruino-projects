@@ -16,7 +16,14 @@ interface Transaction<
 > {
 	target: TTargets;
 	// Guard condition that must be true for the transition to occur
-	cond?: (context: TContext, event: TEvent) => boolean;
+	cond?: (
+		context: TContext,
+		event: TCurrentTarget extends TEvent['type']
+			? TEvent extends { type: TCurrentTarget }
+				? TEvent
+				: never
+			: never,
+	) => boolean;
 	// Actions to run during the transition
 	actions?: (
 		context: TContext,
@@ -53,7 +60,7 @@ type States<K extends string, State extends StateConfig<any, any, K>> = {
 };
 
 export type MachineConfig<
-	TContext,
+	TContext extends { [context: string]: any },
 	TStatesNames extends string,
 	TStates extends States<TStatesNames, StateConfig<TContext, any, TStatesNames>>,
 > = {
@@ -149,7 +156,7 @@ export class FiniteStateMachine<
 		const currentStateConfig = this.config.states[this.currentState];
 
 		// Check if the guard condition passes (if there is one)
-		if (transition.cond && !transition.cond(this.context, event)) {
+		if (transition.cond && !transition.cond(this.context, event as any)) {
 			return false;
 		}
 
@@ -240,8 +247,8 @@ export class FiniteStateMachine<
 
 		const previousState = this.currentState;
 		for (const t of Array.isArray(transition) ? transition : [transition]) {
-			const changed = this.processTransition(t, event);
-			if (changed) {
+			const prevent = this.processTransition(t, event);
+			if (prevent) {
 				return this.currentState;
 			}
 		}
