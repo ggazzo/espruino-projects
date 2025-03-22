@@ -1,4 +1,4 @@
-import { Emitter } from '@rocket.chat/emitter';
+import { Emitter } from '@tspruino/emitter';
 /**
  * Finite State Machine implementation in TypeScript
  *
@@ -15,6 +15,7 @@ interface Transaction<
 	TCurrentTarget extends string = string,
 > {
 	target: TTargets;
+
 	// Guard condition that must be true for the transition to occur
 	cond?: (
 		context: TContext,
@@ -87,25 +88,26 @@ export class FiniteStateMachine<
 		[context: string]: any;
 	} = {},
 	TConfig extends MachineConfig<TContext, TStates, any> = MachineConfig<TContext, TStates, any>,
-> extends Emitter<
-	Merge<
-		{
-			[K in EventTypesBase<'context.update', String<keyof TContext>>]: {
-				value: TContext[K extends `${infer Prefix}.${infer Suffix}` ? Suffix : K];
-			};
-		},
-		{
-			[K in EventTypes<TStates> | 'state.change']: {
-				previousState: TStates;
-				currentState: TStates;
-				event: TEvent;
-			};
-		}
-	>
 > {
 	private currentState: TStates;
 	private config: TConfig;
 	private context: TContext;
+	public emitter: Emitter<
+		Merge<
+			{
+				[K in EventTypesBase<'context.update', String<keyof TContext>>]: {
+					value: TContext[K extends `${infer Prefix}.${infer Suffix}` ? Suffix : K];
+				};
+			},
+			{
+				[K in EventTypes<TStates> | 'state.change']: {
+					previousState: TStates;
+					currentState: TStates;
+					event: TEvent;
+				};
+			}
+		>
+	>;
 
 	static create<
 		TStatesNames extends string,
@@ -136,7 +138,7 @@ export class FiniteStateMachine<
 	 * @param config The configuration for the state machine
 	 */
 	constructor(config: TConfig) {
-		super();
+		this.emitter = new Emitter();
 		this.config = config;
 		this.context = config.context;
 		this.currentState = config.initial as TStates;
@@ -196,7 +198,7 @@ export class FiniteStateMachine<
 
 		Object.entries(context).forEach(([key, value]) => {
 			if (this.context[key] !== value) {
-				this.emit(`context.update.${key as String<keyof TContext>}`, {
+				this.emitter.emit(`context.update.${key as String<keyof TContext>}`, {
 					previousState,
 					currentState: this.currentState,
 					event,
@@ -207,19 +209,19 @@ export class FiniteStateMachine<
 			}
 		});
 
-		this.emit(`state.exit.${previousState}`, {
+		this.emitter.emit(`state.exit.${previousState}`, {
 			previousState,
 			currentState: this.currentState,
 			event,
 		} as any);
 
-		this.emit(`state.enter.${this.currentState}`, {
+		this.emitter.emit(`state.enter.${this.currentState}`, {
 			previousState,
 			currentState: this.currentState,
 			event,
 		} as any);
 
-		this.emit('state.change', {
+		this.emitter.emit('state.change', {
 			previousState,
 			currentState: this.currentState,
 			event,

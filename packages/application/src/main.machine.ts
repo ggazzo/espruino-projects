@@ -1,10 +1,13 @@
-import { pid } from 'process';
-import { FiniteStateMachine, calculateHeatingTimeSeconds } from '@tspruino/machine';
+import { FiniteStateMachine } from '@tspruino/machine';
+import { calculateHeatingTimeSeconds } from './calculations';
 
 type States = 'idle' | 'preparing' | 'confirm' | 'timer' | 'heating' | 'done';
 type Events =
 	| {
 			type: 'STOP';
+	  }
+	| {
+			type: 'SKIP';
 	  }
 	| {
 			type: 'ENTER_CONFIRM';
@@ -49,7 +52,10 @@ type Events =
 			preparing_time: number;
 	  }
 	| { type: 'CONFIRM' }
-	| { type: 'OPEN_FILE' };
+	| {
+			type: 'OPEN_FILE';
+			file: string;
+	  };
 
 export const create = () =>
 	FiniteStateMachine.create<
@@ -90,6 +96,12 @@ export const create = () =>
 		states: {
 			idle: {
 				transitions: {
+					// OPEN_FILE: {
+					// 	target: 'idle',
+					// 	actions: (context, event) => {
+					// 		context.file = event.file;
+					// 	},
+					// },
 					STOP: {
 						target: 'done',
 					},

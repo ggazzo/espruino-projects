@@ -8,7 +8,7 @@ node_modules
 dist
 build
 out
-
+.rollup.cache
 # Cache
 .turbo
 .vercel
@@ -35,3 +35,4 @@ yarn-error.log*
 .idea
 .vscode
 coverage
+.qodo

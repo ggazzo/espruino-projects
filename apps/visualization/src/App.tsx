@@ -8,7 +8,7 @@ function App() {
 
 	return (
 		<div style={{ width: '100%', height: '100%' }}>
-			<FSMVisualizer machine={machine} />
+			<FSMVisualizer machine={machine as any} />
 		</div>
 	);
 }

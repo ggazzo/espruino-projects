@@ -1,9 +1,9 @@
 {
 	"name": "@tspruino/machine",
 	"version": "0.1.0",
-	"main": "./dist/index.js",
-	"module": "./dist/index.mjs",
-	"types": "./dist/index.d.ts",
+	"main": "./src/index.ts",
+	"module": "src/index.ts",
+	"types": "src/index.ts",
 	"license": "MIT",
 	"scripts": {
 		"build": "tsc",
@@ -17,6 +17,6 @@
 		"typescript": "^5.7.2"
 	},
 	"dependencies": {
-		"@rocket.chat/emitter": "^0.31.25"
+		"@tspruino/emitter": "workspace:*"
 	}
 }

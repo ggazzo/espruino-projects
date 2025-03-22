@@ -12,7 +12,7 @@ const __dirname = path.dirname(__filename);
 export default {
 	mode: 'development',
 	context: __dirname,
-	entry: './src/index.tsx',
+	entry: './src/main.ts',
 	output: {
 		path: path.resolve(__dirname, 'dist'),
 		filename: 'bundle.js',

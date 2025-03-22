@@ -1,15 +1,19 @@
 {
-	"name": "@tspruino/application",
+	"name": "@tspruino/emitter",
 	"version": "0.0.1",
-	"main": "./src/index.ts",
-	"types": "./src/index.ts",
+	"type": "module",
+	"exports": {
+		".": {
+			"types": "./src/index.ts",
+			"import": "./src/index.ts"
+		}
+	},
 	"scripts": {
 		"build": "tsc",
 		"test": "node --import tsx --test ./src/**/*.spec.*",
 		"start": "tsc --watch"
 	},
 	"dependencies": {
-		"@tspruino/machine": "workspace:*",
 		"tsx": "^4.19.3"
 	},
 	"devDependencies": {
