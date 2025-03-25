@@ -81,11 +81,11 @@ export interface IEmitter<EventMap extends DefaultEventMap = DefaultEventMap> {
 export class Emitter<EventMap extends DefaultEventMap = DefaultEventMap>
 	implements IEmitter<EventMap>
 {
-	private evts: Map<AnyEventTypeOf<EventMap>, AnyEventHandlerOf<EventMap>[]>;
+	private _evts: Map<AnyEventTypeOf<EventMap>, AnyEventHandlerOf<EventMap>[]>;
 	private _once: WeakMap<AnyEventHandlerOf<EventMap>, number>;
 
 	constructor() {
-		this.evts = new Map();
+		this._evts = new Map();
 		this._once = new WeakMap();
 	}
 
@@ -93,14 +93,14 @@ export class Emitter<EventMap extends DefaultEventMap = DefaultEventMap>
 	 * Returns the whole EventType list
 	 */
 	events(): AnyEventTypeOf<EventMap>[] {
-		return Array.from(this.evts.keys());
+		return Array.from(this._evts.keys());
 	}
 
 	/**
 	 * Returns `true` if this emmiter has a listener attached to the `key` event type
 	 */
 	has(key: AnyEventTypeOf<EventMap>): boolean {
-		return this.evts.has(key);
+		return this._evts.has(key);
 	}
 
 	/**
@@ -114,9 +114,9 @@ export class Emitter<EventMap extends DefaultEventMap = DefaultEventMap>
 	>(type: TType, handler: EventHandlerOf<EventMap, TType>): OffCallbackHandler;
 
 	on(type: keyof EventMap, handler: (...args: any[]) => void) {
-		const handlers = this.evts.get(type) ?? [];
+		const handlers = this._evts.get(type) ?? [];
 		handlers.push(handler);
-		this.evts.set(type, handlers);
+		this._evts.set(type, handlers);
 		return () => this.off(type, handler);
 	}
 
@@ -145,7 +145,7 @@ export class Emitter<EventMap extends DefaultEventMap = DefaultEventMap>
 	>(type: EventType, handler: EventHandlerOf<EventMap, EventType>): void;
 
 	off(type: keyof EventMap, handler: (...args: any[]) => void) {
-		const handlers = this.evts.get(type);
+		const handlers = this._evts.get(type);
 		if (!handlers) {
 			return;
 		}
@@ -160,7 +160,7 @@ export class Emitter<EventMap extends DefaultEventMap = DefaultEventMap>
 		handlers.splice(handlers.findIndex(callback => callback === handler) >>> 0, 1);
 
 		if (handlers.length === 0) {
-			this.evts.delete(type);
+			this._evts.delete(type);
 		}
 	}
 
@@ -179,7 +179,7 @@ export class Emitter<EventMap extends DefaultEventMap = DefaultEventMap>
 	): void;
 
 	emit(type: keyof EventMap, ...[event]: any[]) {
-		[...(this.evts.get(type) ?? [])].forEach(handler => {
+		[...(this._evts.get(type) ?? [])].forEach(handler => {
 			handler(event);
 
 			if (this._once.get(handler)) {
