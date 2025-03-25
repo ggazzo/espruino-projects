@@ -14,12 +14,14 @@ require("Encoder").connect(A1,A2,function (direction) {
 
 import { Emitter } from '@tspruino/emitter';
 
-export class VirtualEncoder extends Emitter {
-	private last: number = 0;
+export class VirtualEncoder extends Emitter<{
+	change: -1 | 1;
+}> {
+	private _last: number = 0;
 
-	public trigger(a: 0 | 1, b: 0 | 1): void {
+	public t(a: 0 | 1, b: 0 | 1): void {
 		var s = 0;
-		switch (this.last) {
+		switch (this._last) {
 			case 0b00:
 				if (a) s++;
 				if (b) s--;
@@ -37,8 +39,8 @@ export class VirtualEncoder extends Emitter {
 				if (!b) s--;
 				break;
 		}
-		this.last = a | (b << 1);
-		if (s !== 0) this.emit('change', s);
+		this._last = a | (b << 1);
+		if (s == 1 || s == -1) this.emit('change', s);
 	}
 }
 
@@ -49,13 +51,15 @@ export class Encoder extends VirtualEncoder {
 		const onChange = () => {
 			const a = digitalRead(pina) as 0 | 1;
 			const b = digitalRead(pinb) as 0 | 1;
-			this.trigger(a, b);
+			this.t(a, b);
 		};
+		// @ts-expect-error
+		pinMode(pina, 'input_pulldown');
+		// @ts-expect-error
+		pinMode(pinb, 'input_pulldown');
 
-		pinMode(pina, 'input_pulldown', false);
-		pinMode(pinb, 'input_pulldown', false);
-		onChange(); // initialize the state of a, b and state: no callback will occur
 		setWatch(onChange, pina, { repeat: true });
 		setWatch(onChange, pinb, { repeat: true });
+		onChange();
 	}
 }
