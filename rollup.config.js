@@ -4,6 +4,7 @@ import resolve from '@rollup/plugin-node-resolve';
 import commonjs from '@rollup/plugin-commonjs';
 import typescript from '@rollup/plugin-typescript';
 import { terser } from 'rollup-plugin-terser';
+import prepack from 'rollup-plugin-prepack';
 
 const __dirname = path.resolve();
 
@@ -15,6 +16,33 @@ export default {
 		sourcemap: false,
 		compact: true,
 		intro: `
+			// Polyfill Array.prototype.slice
+			if (!Array.prototype.slice) {
+				Array.prototype.slice = function(start, end) {
+					var array = Object(this);
+					var length = array.length >>> 0;
+					var start = start || 0;
+					var end = end || length;
+					
+					// Handle negative indices
+					if (start < 0) start = Math.max(length + start, 0);
+					if (end < 0) end = Math.max(length + end, 0);
+					
+					// Ensure indices are within bounds
+					start = Math.min(start, length);
+					end = Math.min(end, length);
+					
+					// Create result array
+					var result = [];
+					for (var i = start; i < end; i++) {
+						if (i in array) {
+							result.push(array[i]);
+						}
+					}
+					return result;
+				};
+			}
+
 			// Polyfill Map with plain object
 			function createSimpleMap() {
 				const store = Object.create(null);
@@ -73,6 +101,7 @@ export default {
 				],
 			],
 			plugins: [
+				// 'minify-mangle-names',
 				['@babel/plugin-transform-parameters', { loose: true }],
 				['@babel/plugin-proposal-object-rest-spread', { loose: true, useBuiltIns: true }],
 			],
@@ -85,16 +114,22 @@ export default {
 				removeComments: true,
 			},
 		}),
-		// terser({
-		// 	// Add minification
-		// 	compress: {
-		// 		passes: 2,
-		// 		dead_code: true,
-		// 		drop_console: true,
-		// 		drop_debugger: true,
-		// 	},
-		// 	mangle: true,
-		// }),
+		terser({
+			// Add minification
+			compress: {
+				passes: 5,
+				keep_classnames: false,
+				dead_code: true,
+				drop_console: false,
+				drop_debugger: true,
+			},
+			mangle: {
+				toplevel: true,
+				properties: {
+					regex: /^_/,
+				},
+			},
+		}),
 	],
 	external: [],
 	treeshake: {
