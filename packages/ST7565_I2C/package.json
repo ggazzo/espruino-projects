@@ -17,6 +17,7 @@
 		"tsx": "^4.19.3"
 	},
 	"devDependencies": {
+		"@tspruino/debounce": "workspace:*",
 		"@types/espruino": "^1.94.10",
 		"@types/jest": "^29.5.12",
 		"jest": "^29.7.0",

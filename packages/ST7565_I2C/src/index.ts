@@ -1,3 +1,5 @@
+import { debounce } from '@tspruino/debounce';
+
 // ST7565 I2C Driver for Espruino with Graphics Library Integration
 const ST7565_I2C_ADDR = 0x3f; // Change if needed
 
@@ -29,6 +31,10 @@ declare global {
 	}
 }
 
+interface G extends Graphics {
+	setContrast(contrast: number): void;
+}
+
 export const connectLCD = ({
 	i2c,
 	callback,
@@ -37,7 +43,7 @@ export const connectLCD = ({
 	i2c: I2C;
 	callback?: (g: Graphics) => void;
 	addr?: number;
-}) => {
+}): G => {
 	// Pre-allocate buffers for better performance
 	const pageBuffer = new Uint8Array(128 * 8); // 128 bytes + 1 for command
 	// Graphics library integration
@@ -85,12 +91,12 @@ export const connectLCD = ({
 			i2c.writeTo(addr, [0x40].concat(new Uint8Array(pageBuffer.buffer, page * 128, 128) as any));
 		}
 	};
-	g.flip = g.update;
+	g.flip = debounce(g.update, 300);
 
 	initST7565();
 	if (callback) {
 		setTimeout(() => callback(g), 100);
 	}
 
-	return g;
+	return Object.assign(g, { setContrast });
 };
