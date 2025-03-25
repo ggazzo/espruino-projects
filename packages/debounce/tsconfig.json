@@ -1,0 +1,9 @@
+{
+	"extends": "../../tsconfig.json",
+	"compilerOptions": {
+		"composite": true, // Enables project references
+		"declaration": true, // Needed for TypeScript references
+		"outDir": "dist"
+	},
+	"include": ["src"]
+}
