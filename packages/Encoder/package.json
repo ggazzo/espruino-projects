@@ -1,0 +1,26 @@
+{
+	"name": "@tspruino/encoder",
+	"version": "0.0.1",
+	"type": "module",
+	"exports": {
+		".": {
+			"types": "./src/index.ts",
+			"import": "./src/index.ts"
+		}
+	},
+	"scripts": {
+		"build": "tsc",
+		"test": "node --import tsx --test ./src/**/*.spec.*",
+		"start": "tsc --watch"
+	},
+	"dependencies": {
+		"tsx": "^4.19.3"
+	},
+	"devDependencies": {
+		"@tspruino/emitter": "^0.0.1",
+		"@types/espruino": "^1.94.10",
+		"@types/jest": "^29.5.12",
+		"jest": "^29.7.0",
+		"ts-jest": "^29.1.2"
+	}
+}
