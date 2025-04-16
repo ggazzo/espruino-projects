@@ -11,8 +11,7 @@ export const createReadMachine = () => {
 				type: 'OK';
 		  }
 		| {
-			type: 'READ_LINE';
-			
+				type: 'READ_LINE';
 		  }
 		| {
 				type: 'DONE';

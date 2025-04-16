@@ -1,8 +1,9 @@
 import { FiniteStateMachine } from '@tspruino/machine';
 import { calculateHeatingTimeSeconds } from './calculations';
 
-type States = 'idle' | 'preparing' | 'confirm' | 'timer' | 'heating' | 'done';
+type States = 'initial' | 'idle' | 'preparing' | 'confirm' | 'timer' | 'heating' | 'done';
 type Events =
+	| { type: 'START' }
 	| {
 			type: 'STOP';
 	  }
@@ -54,7 +55,7 @@ type Events =
 	| { type: 'CONFIRM' }
 	| {
 			type: 'OPEN_FILE';
-			file: string;
+			file: File;
 	  };
 
 export const create = () =>
@@ -75,9 +76,10 @@ export const create = () =>
 			volume: number;
 			watts: number;
 			preparing_time: number;
+			file: File | null;
 		}
 	>({
-		initial: 'idle',
+		initial: 'initial',
 		context: {
 			PID: {
 				kp: 0.1,
@@ -92,16 +94,24 @@ export const create = () =>
 			volume: 0,
 			watts: 0,
 			preparing_time: 0,
+			file: null,
 		},
 		states: {
+			initial: {
+				transitions: {
+					START: {
+						target: 'idle',
+					},
+				},
+			},
 			idle: {
 				transitions: {
-					// OPEN_FILE: {
-					// 	target: 'idle',
-					// 	actions: (context, event) => {
-					// 		context.file = event.file;
-					// 	},
-					// },
+					OPEN_FILE: {
+						target: 'idle',
+						actions: (context, event) => {
+							context.file = event.file;
+						},
+					},
 					STOP: {
 						target: 'done',
 					},

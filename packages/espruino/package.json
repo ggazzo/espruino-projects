@@ -18,7 +18,11 @@
 		"typescript": "^5.7.2"
 	},
 	"dependencies": {
+		"@tspruino/ST7565_I2C": "workspace:*",
 		"@tspruino/application": "workspace:*",
+		"@tspruino/debounce": "workspace:*",
+		"@tspruino/encoder": "workspace:*",
+		"@tspruino/menu": "workspace:*",
 		"espruino": "^0.1.5"
 	}
 }

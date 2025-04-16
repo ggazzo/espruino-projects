@@ -16,10 +16,11 @@ import { Emitter } from '@tspruino/emitter';
 
 export class VirtualEncoder extends Emitter<{
 	change: -1 | 1;
+	press: 0 | 1;
 }> {
 	private _last: number = 0;
 
-	public t(a: 0 | 1, b: 0 | 1): void {
+	protected t(a: 0 | 1, b: 0 | 1): void {
 		var s = 0;
 		switch (this._last) {
 			case 0b00:
@@ -45,7 +46,7 @@ export class VirtualEncoder extends Emitter<{
 }
 
 export class Encoder extends VirtualEncoder {
-	public constructor(pina: Pin, pinb: Pin) {
+	public constructor(pina: Pin, pinb: Pin, press?: Pin) {
 		super();
 
 		const onChange = () => {
@@ -60,6 +61,19 @@ export class Encoder extends VirtualEncoder {
 
 		setWatch(onChange, pina, { repeat: true });
 		setWatch(onChange, pinb, { repeat: true });
+
+		if (press) {
+			// @ts-expect-error
+			pinMode(press, 'input_pulldown');
+
+			setWatch(
+				() => {
+					this.emit('press', digitalRead(press) as 0 | 1);
+				},
+				press,
+				{ repeat: true },
+			);
+		}
 		onChange();
 	}
 }

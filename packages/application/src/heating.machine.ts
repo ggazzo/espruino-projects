@@ -7,11 +7,12 @@ export const createHeatingMachine = () =>
 				type: 'READ_TEMPERATURE';
 				temperature: number;
 		  }
-		| { type: 'HEAT' }
+		| { type: 'HEAT'; target: number }
 		| { type: 'STOP' }
 		| { type: 'DONE'; output: number; lastTimePID: number },
 		{
 			temperature: number;
+			target: number;
 			counter_measurement: number;
 			output: number;
 			lastTimePID: number;
@@ -19,6 +20,7 @@ export const createHeatingMachine = () =>
 	>({
 		context: {
 			temperature: 0,
+			target: 0,
 			counter_measurement: 0,
 			output: 0,
 			lastTimePID: 0,
@@ -37,6 +39,9 @@ export const createHeatingMachine = () =>
 					],
 					HEAT: {
 						target: 'heating',
+						actions: (context, event) => {
+							context.target = event.target;
+						},
 					},
 				},
 			},

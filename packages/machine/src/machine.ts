@@ -95,7 +95,7 @@ export class FiniteStateMachine<
 	public emitter: Emitter<
 		Merge<
 			{
-				[K in EventTypesBase<'context.update', String<keyof TContext>>]: {
+				[K in EventTypesBase<'context.update', String<keyof TContext>> | 'context.update']: {
 					value: TContext[K extends `${infer Prefix}.${infer Suffix}` ? Suffix : K];
 				};
 			},
@@ -163,7 +163,6 @@ export class FiniteStateMachine<
 		}
 
 		const context = JSON.parse(JSON.stringify(this.context)) as TContext;
-		// Run exit actions for current state
 		// Run transition actions
 		if (transition.actions) {
 			transition.actions(context, event as any);
@@ -173,7 +172,7 @@ export class FiniteStateMachine<
 			Object.entries(context).forEach(([key, value]) => {
 				if (this.context[key] !== value) {
 					this.context[key as keyof TContext] = value;
-					this.emit(`context.update.${key as String<keyof TContext>}`, {
+					this.emitter.emit(`context.update.${key as String<keyof TContext>}`, {
 						previousState,
 						currentState: this.currentState,
 						event,
@@ -184,9 +183,11 @@ export class FiniteStateMachine<
 			});
 			return false;
 		}
+
 		if (currentStateConfig.onExit) {
 			currentStateConfig.onExit(context, event);
 		}
+
 		// Update current state
 		this.currentState = transition.target as TStates;
 
@@ -196,8 +197,10 @@ export class FiniteStateMachine<
 			nextStateConfig.onEnter(context, event);
 		}
 
+		let anyContextChanged = false;
 		Object.entries(context).forEach(([key, value]) => {
 			if (this.context[key] !== value) {
+				anyContextChanged = true;
 				this.emitter.emit(`context.update.${key as String<keyof TContext>}`, {
 					previousState,
 					currentState: this.currentState,
@@ -208,6 +211,13 @@ export class FiniteStateMachine<
 				this.context[key as keyof TContext] = value;
 			}
 		});
+		if (anyContextChanged) {
+			this.emitter.emit(`context.update`, {
+				previousState,
+				currentState: this.currentState,
+				event,
+			} as any);
+		}
 
 		this.emitter.emit(`state.exit.${previousState}`, {
 			previousState,
@@ -248,9 +258,10 @@ export class FiniteStateMachine<
 		for (const t of Array.isArray(transition) ? transition : [transition]) {
 			const prevent = this.processTransition(t, event);
 			if (prevent) {
-				return this.currentState;
+				break;
 			}
 		}
+
 		return this.currentState;
 	}
 

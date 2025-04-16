@@ -8,6 +8,7 @@
 	"scripts": {
 		"build": "tsc",
 		"dev": "tsc --watch",
+		"test": "node --import tsx --test ./src/**/*.spec.*",
 		"lint": "eslint src/**/*.ts",
 		"clean": "rm -rf dist"
 	},

@@ -1,14 +1,22 @@
 export class Thermistor {
-	private pin: Pin;
 	constructor(
-		pin: number,
+		private pin: Pin,
 		private beta: number = 3950,
 		private r0: number = 10000,
 		private t0: number = 25,
-		private rSeries: number = 100000,
+		private rSeries: number = 10000,
 		private voltageReference: number = 3.3,
 	) {
-		this.pin = new Pin(pin);
+		pinMode(this.pin, 'analog', true);
+	}
+
+	private readAnalog() {
+		let value = 0;
+		for (let i = 0; i < 50; i++) {
+			value += analogRead(this.pin);
+		}
+		value /= 50;
+		return value;
 	}
 
 	private readTemperature(
@@ -19,17 +27,37 @@ export class Thermistor {
 		rSeries: number,
 		voltageReference: number = 3.3,
 	): number {
-		var adc = analogRead(pin); // Read ADC value (0 to 1)
-		var v = adc * voltageReference; // Convert to voltage (assuming 3.3V system)
+		const adc = this.readAnalog();
+		const VRT = adc * this.voltageReference;
 
-		// Convert voltage to resistance
-		var rThermistor = rSeries * (v / (voltageReference - v));
-
-		// Convert resistance to temperature using the Steinhart-Hart equation
-		var tKelvin = 1 / (1 / (t0 + 273.15) + (1 / beta) * Math.log(rThermistor / r0));
-		var tCelsius = tKelvin - 273.15; // Convert to Celsius
-
+		// se o se o ntc estiver conectado ao vcc
+		// const resistance = r0 / (voltageReference / VRT - 1);
+		const resistance = ((voltageReference - VRT) * rSeries) / VRT;
+		const inverseKelvin = 1.0 / (t0 + 273.15) + (1.0 / beta) * Math.log(resistance / r0);
+		const tKelvin = 1.0 / inverseKelvin;
+		const tCelsius = tKelvin - 273.15;
 		return tCelsius;
+
+		// inline double NTC_Thermistor::resistanceToKelvins(const double resistance) {
+		// 	const double inverseKelvin = 1.0 / this->nominalTemperature +
+		// 		log(resistance / this->nominalResistance) / this->bValue;
+		// 	return (1.0 / inverseKelvin);
+		// }
+
+		// inline double NTC_Thermistor::readResistance() {
+		// }
+
+		// const adc = analogRead(this.pin); // valor de 0.0 a 1.0
+		// const VRT = adc * this.voltageReference;
+
+		// // Corrigir a resistência do termistor com a fórmula correta
+		// // const RT = (VRT * this.rSeries) / (this.voltageReference - VRT);
+		// const RT = ((voltageReference - VRT) * rSeries) / VRT;
+
+		// // Usar a equação de Steinhart-Hart (simplificada)
+		// const tKelvin = 1 / (1 / (this.t0 + 273.15) + (1 / this.beta) * Math.log(RT / this.r0));
+		// const tCelsius = tKelvin - 273.15;
+		// return tCelsius;
 	}
 
 	getTemp(): number {

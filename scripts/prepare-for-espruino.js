@@ -1,4 +1,4 @@
-import { readFile, writeFileSync } from 'node:fs';
+simport { readFile, writeFileSync } from 'node:fs';
 import recursive from 'recursive-readdir';
 
 recursive('build', [], async (err, files) => {

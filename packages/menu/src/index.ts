@@ -1,16 +1,13 @@
-type Item = {
-	text: string;
-	selected?: boolean;
-	disabled?: boolean;
-	onChange?: (value: unknown) => void;
-	value?: unknown;
-	format?: (value: unknown) => string;
-} & (NumericItem | BooleanItem | {});
+import { Emitter } from '@tspruino/emitter';
+
+type Item = NumericItem | BooleanItem;
+
+// // & (NumericItem | BooleanItem | {});
 
 type NumericItem = {
-	onChange: (value: number) => void;
+	text: string;
 	value: number;
-	format?: (value: number | boolean) => string;
+	format?: (value: number) => string;
 	step: number;
 	wrap?: boolean;
 	min: number;
@@ -18,15 +15,37 @@ type NumericItem = {
 };
 
 type BooleanItem = {
-	onChange: (value: boolean) => void;
+	text: string;
+	format?: (value: boolean) => string;
 	value: boolean;
 };
 
-export class Menu<TItem extends Item> {
+// change and
+type V = 'change' | 'submit';
+
+type ReplaceKey<
+	T extends {
+		[key: string]: any;
+	},
+> = {
+	[K in keyof T as `${V}:${K extends string ? K : never}`]: T[K];
+};
+
+type FromItemToEvents<TItems, K extends keyof TItems = keyof TItems> = ReplaceKey<{
+	[key in K]: TItems[key] extends Item ? TItems[key]['value'] : never;
+}>;
+
+export type ExtractFromItemToEvents<M extends Menu<any, any>> =
+	M extends Menu<any, infer A> ? A : never;
+
+type String<T> = T extends string ? T : never;
+
+export class Menu<
+	TItems extends { [key: string]: Item },
+	TEvents extends FromItemToEvents<TItems>,
+> extends Emitter<TEvents> {
 	private _title: string;
-	private readonly _items: {
-		[key: string]: TItem;
-	};
+	private readonly _items: TItems;
 	private _selected: number;
 	private _selectEdit: Item | undefined;
 	private readonly _fontHeight: number;
@@ -39,18 +58,17 @@ export class Menu<TItem extends Item> {
 	private readonly _cHighlightBg: number;
 	private readonly _cHighlightFg: number;
 
-	private _itemsKeys: string[];
+	private _itemsKeys: Array<String<keyof TItems>>;
 
 	constructor(
 		private readonly _g: Graphics,
 		_title: string,
-		_items: {
-			[key: string]: TItem;
-		},
+		_items: TItems,
 	) {
+		super();
 		this._title = _title;
 		this._items = _items;
-		this._itemsKeys = Object.keys(_items);
+		this._itemsKeys = Object.keys(_items) as unknown as Array<String<keyof TItems>>;
 		this._selected = 0;
 		this._fontHeight = 6;
 		this._x = 0;
@@ -64,6 +82,8 @@ export class Menu<TItem extends Item> {
 	}
 
 	public draw() {
+		this._g.clear();
+		this._g.setFont('4x6');
 		this._g.setColor(this._cFg);
 		// if (this._predraw) this._predraw(_g);
 		this._g.setFontAlign(0, -1);
@@ -76,9 +96,10 @@ export class Menu<TItem extends Item> {
 		var idx = E.clip(this._selected - (rows >> 1), 0, this._itemsKeys.length - rows);
 		var iy = this._y;
 		var less = idx > 0;
+
 		while (rows--) {
 			var name = this._itemsKeys[idx];
-			var item = this._items[name];
+			var item: Item = this._items[name];
 			var hl = idx == this._selected && !this._selectEdit;
 			this._g.setColor(hl ? this._cHighlightBg : this._cBg);
 			this._g.fillRect(this._x, iy, this._x2, iy + this._fontHeight - 1);
@@ -87,8 +108,8 @@ export class Menu<TItem extends Item> {
 			this._g.drawString(name, this._x, iy);
 			if ('object' == typeof item) {
 				var xo = this._x2;
-				var v = item.value;
-				if (item.format) v = item.format(v);
+				var v = item.format?.(item.value) ?? item.value;
+
 				if (this._selectEdit && idx == this._selected) {
 					var s = this._fontHeight > 10 ? 2 : 1;
 					xo -= 12 * s + 1;
@@ -121,22 +142,26 @@ export class Menu<TItem extends Item> {
 
 	select() {
 		var item = this._items[this._itemsKeys[this._selected]];
-		// if ('function' == typeof item) {
-		// 	item();
-		// 	return;
-		// }
-		if ('object' == typeof item) {
-			// if a number, go into 'edit mode'
-			if ('number' == typeof item.value) {
-				this._selectEdit = this._selectEdit ? undefined : item;
-			} else {
-				// else just toggle bools
-				if ('boolean' == typeof item.value) {
-					item.value = !item.value;
-					if (item.onChange) item.onChange((item as BooleanItem).value);
+		if (this._itemsKeys[this._selected] === 'Back') {
+			// Handle "Back" option
+			// Logic to navigate back to the parent menu
+		} else {
+			if ('object' == typeof item) {
+				// if a number, go into 'edit mode'
+				if ('number' == typeof item.value) {
+					this._selectEdit = this._selectEdit ? undefined : item;
+					if (this._selectEdit) {
+						this.emit(`submit:${this._itemsKeys[this._selected]}`, item.value as any);
+					}
+				} else {
+					// else just toggle bools
+					if ('boolean' == typeof item.value) {
+						item.value = !item.value;
+						this.emit(`change:${this._itemsKeys[this._selected]}`, item.value as any);
+					}
 				}
+				this.draw();
 			}
-			this.draw();
 		}
 	}
 
@@ -148,7 +173,7 @@ export class Menu<TItem extends Item> {
 				item.value = item.wrap ? item.max : item.min;
 			if (item.max !== undefined && item.value > item.max)
 				item.value = item.wrap ? item.min : item.max;
-			if (item.onChange) item.onChange(item.value);
+			this.emit(`change:${this._itemsKeys[this._selected]}`, item.value as any);
 		} else {
 			this._selected = (dir + this._selected + this._itemsKeys.length) % this._itemsKeys.length;
 		}
